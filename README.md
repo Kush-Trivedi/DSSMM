@@ -1,2 +1,1287 @@
-# DSSMM
-To cut through market noise and determine whether the market move is statistically significant and why, using statistical data-backed reasoning. The system delivers a clear verdict (Signal / Weak / Noise) supported by statistical analysis, backtesting, market news, and stock value movements.
+
+<h1 style="color:rgb(233, 92, 32);"><center><font>From Noise to Decision: Detecting Statistically Significant Market Moves with BigQuery AI</font></center></h1>
+
+<h2 style="color:rgb(96, 63, 131);border-radius:5px;display:fill"><center><font>“Risk comes from not knowing what you’re doing”</font></center></h2>
+
+
+1. [Goal](#001)
+2. [Problem Statement](#002)
+3. [Impact Statement](#003)
+4. [Architecture](#004)
+5. [Custom Algorithm](#005)
+6. [BigQuery AI Usage](#006)
+7. [Current, Future & Limitations](#007)
+8. [Why DSSMM (Detecting Statistically Significant Market Moves)](#008)
+9. [Target Audience](#009)
+10. [Project Setup & Run Guide](#010)
+11. [Interactive Dashboard](#011)
+12. [Survey — BigQuery AI: Building the Future of Data](#012)
+
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '001'>Goal </b> </p></div>
+
+
+To **cut through market noise and determine whether the market move is statistically significant and why**, using statistical data-backed reasoning. The system delivers a clear verdict (Signal / Weak / Noise) supported by statistical analysis, backtesting, market news, and stock value movements. Each output includes a concise 2-4 line blurb explanation, powered by BigQuery and leveraging a combined approach of **AI Architect** and **Semantic Detective**.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '002'>Problem Statement </b> </p></div>
+
+Most day-to-day stock market fluctuations are nothing more than noise. Analysts and quants are buried under endless headlines, dashboards, and conflicting signals. Existing tools either flag everything as "important" or require hours of manual investigation, slowing decision-making when speed matters most.
+
+This creates an urgent need for a direct, decision-ready answer in plain English:
+
+> **"Did this market move actually matter, and what caused it?"**
+
+Our proposal delivers a concise **Signal vs. Noise** verdict, supported by statistical rigor, backtesting, and contextual market intelligence. A prototype demonstrates how raw price data, unstructured news and other relevant content can be transformed into clear, investor-grade insights, **directly inside BigQuery**, powered by its **Generative AI** and **vector search** capabilities.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '003'>Impact Statement </b> </p></div>
+
+
+Our goal cuts triage time, improves consistency, and scales cleanly inside BigQuery with full auditability for risk and governance. Built on BigQuery-native **custom composite S³ (Signal Strength Score)** which blends shock size (z-scores), news corroboration, and AI tone into one transparent metric.
+
+- **What sets our solution apart?**
+
+  > Most tools only show stock moves (up/down), and a few flag “signals,” but rarely explain _why_. Our approach combines **statistical testing** (was the move real or just noise?) with **relevant news & headline context** (earnings, guidance, macro events, or flows). The result is both the **proof** (the move is real) and the **reason** (what likely drove it)—delivered in plain English.
+
+- **Faster decisions:**
+
+  > Analysts receive a **signal vs. noise verdict** plus a **2-4 sentence explanation**, without hours of manual digging.
+
+- **Consistent triage:**
+
+  > Objective **z-score tests** and a transparent **scoring model** cut bias and reduce subjective guesswork.
+
+- **Ready for scale:**
+
+  > The demo runs on **public data feeds** (yfinance + RSS) but is designed to expand to **official sources** (Nasdaq, government filings, premium news, etc.).
+
+- **Time saved:**
+  > Reclaims hundreds of analyst and quant hours each year by eliminating ad-hoc investigations. Also includes a **light backtest view (5- and 10-day forward returns)** to validate whether **“signal”** days behave differently from **“noise.”**
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '004'>Prototype Architecture </b> </p></div>
+
+
+<center><img src="https://i.postimg.cc/rmVPYGdd/dssmm.png"></center>
+
+
+A **BigQuery-native pipeline** that:
+
+1. **Ingests daily prices** of tickers.
+2. **Flags only meaningful shocks** using **z-scores on returns** and **abnormal returns vs. market benchmarks**.
+3. **Connects events to context** by matching them with **semantically similar news** via **vector embeddings**.
+4. **Generates investor-style insights**, a short explanation and sentiment tilt, through **BigQuery Generative AI**.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '005'>Custom Algorithm </b> </p></div>
+
+
+1. **Price move → Is it meaningful?**
+   - Compute **daily return** and a **market-adjusted abnormal return** (via simple regression against the index in **BigQuery ML**).
+   - Assign **z-scores** (how many standard deviations away from normal).
+   - If **|z| ≥ ~1.96** (≈ **95% confidence**), flag the date as a **Signal Candidate**.
+
+
+2. **What explains it?**
+   - Embed recent headlines and a short **“ticker context”** text using **`ML.GENERATE_EMBEDDING`**.
+   - Compute **cosine similarity** directly in SQL to surface the best matches around the event window (**±2 days**).
+   - If no strong match is found, fall back to **custom keywords** (fully parameterized per ticker).
+
+
+3. **Explain like an analyst**
+   - Feed the matched headlines to **`ML.GENERATE_TEXT`** with a concise, plain-English prompt:
+     - “**Explain in simple investor language… use terms like beat/miss… keep it to 2-4 sentences.**”
+   - Separately, classify sentiment with a **True/False** check: _“Net positive for equity holders?”_ → stored as **`is_positive`**.
+
+
+4. **Final verdict & quick validation**
+   - Assign a **Signal Score** (combining shock size, headline strength, and AI tone) → label as **Signal / Weak / Noise**.
+   - Run a light **5-day forward return check** to see if **Signal days** behave differently from **Noise days**.
+
+
+<h2 style="color:rgb(233, 92, 32);border-radius:5px;display:fill"><center><font>DSSMM - Triage S³ (Signal Strength Score) Formula</font></center></h2>
+
+
+**Inputs (prototype):**
+
+- **Prices:** `yfinance` (daily OHLC)
+- **News:** public RSS (Reuters / WSJ Markets / Yahoo Finance)
+- **Custom Keywords:** Your custom keywords in regards to the ticker we select
+
+**Processing (in BigQuery):**
+
+- **Stat tests:** daily return, market-adjusted **abnormal return** (BQML linear reg vs. index), and **z-scores**:
+  - `z_day` = z-score of the raw daily return
+  - `z_ar` = z-score of the abnormal (market-adjusted) return
+- **Semantic matching:** `ML.GENERATE_EMBEDDING` on headlines + ticker context → cosine similarity to link events ↔ news
+- **Summarization & tone:** `ML.GENERATE_TEXT` → 2–4 sentence explanation; plus a **True/False** tilt for equity holders
+- **Count of supporting news:** `news_count` near the event window (±2 days)
+
+---
+
+$$
+\mathbf{signal\_score}
+= 0.4 \cdot \frac{\min\!\big(\max(|z_{day}|,|z_{ar}|),\,4\big)}{4}
++ 0.4 \cdot \frac{\min(\text{news\_count},\,5)}{5}
++ 0.2 \cdot \frac{(\text{ai\_tilt}+1)}{2}
+$$
+
+---
+  
+**Where:**
+
+- \(|z_day|\), \(|z_ar|\) capture shock size (capped at 4σ for stability)
+- `news_count` is capped at 5 (diminishing returns)
+- `ai_tilt` ∈ \{-1, 0, +1\} (negative / neutral / positive)
+
+**Labels (for triage):**
+
+- **Signal** if `signal_score ≥ 0.65`
+- **Weak** if `0.40 ≤ signal_score < 0.65`
+- **Noise** otherwise
+
+**Outputs:**
+
+- **Verdict:** _Signal / Weak / Noise_
+- **Why it moved:** 2–4 sentence summary with links to top-matching news & headlines
+- **Sanity check:** 5-day forward return table (diagnostic)
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '006'>Approach & How BigQuery AI Was Used </b> </p></div>
+
+
+We combined two competition approaches: **The AI Architect** & **The Semantic Detective**
+
+1. **The AI Architect (Generative AI in SQL)**
+   - **`ML.GENERATE_TEXT`:**
+     - a brief **investor explanation** of the day’s move (**2–4 sentences**),
+     - a **binary tone** (**net positive / net negative** for equity holders) via a constrained prompt.
+   - **Why inside BigQuery?** No ETL round-trips. Prompts run where the data lives; we **store outputs in tables** for auditing.
+
+
+2. **The Semantic Detective (Embeddings & Similarity)**
+   - **`ML.GENERATE_EMBEDDING`:**
+     - aggregated **news content** (title + summary), and
+     - compact **ticker context blobs** (e.g., median z-scores) so similarity is about the ticker’s **recent regime**, not just keywords.
+   - We compute **cosine similarity** inside **BigQuery** to link **events ↔ headlines**.
+   - A **keyword fallback** (simple, transparent) ensures recall even when embeddings are sparse.
+
+> **Multimodal note (prototype):** our objects today are **text**; the same pattern works with **screenshots/PDFs** via **Object Tables** in production.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '007'>Current, Future & Limitations </b> </p></div>
+
+- **Prototype inputs (public):**
+  - **Prices:** **yfinance** (AAPL by default; parameterized for any ticker list).
+  - **News:** public **RSS feeds** (Reuters, WSJ Markets, Yahoo Finance).
+  - **Custom Keywords:** Your desired keywords in regards to the ticker.
+
+
+- **Production-ready substitutes:**
+  - **Official price/reference data** (Nasdaq, exchanges).
+  - **Trusted news & filings** (.gov, EDGAR, premium feeds).
+  - **Screenshots/PDFs** via **Object Tables** and **ObjectRef** for **multimodal** expansion.
+
+
+- **Limitations (today):**
+    - Running on **public feeds** at an end-of-day cadence means this prototype isn’t suited for regulated or latency-sensitive decisions.
+    - **Free-credit constraints** limits scale
+    - Sparse headlines can under-explain some moves until official sources are enabled.
+    - Governance (prompt/model versioning) is planned for production hardening.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '008'>Why DSSMM </b> </p></div>
+
+
+- **Warehouse-native unstructured intelligence:** We stay in **BigQuery**—no separate vector DB, no bespoke microservices. Teams can **audit prompts and results** like any other table.
+- **“Explain why” by default:** Not just “price moved,” but a **compact, human summary** tied to **concrete headlines**.
+- **Semantics > keywords:** **Embeddings** make “AI + SQL” useful on messy text without building an external search stack.
+- **Parameterizable & multi-tenant:** One pipeline, many users—**tickers and keywords** passed per user/team.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '009'>Target Audience </b> </p></div>
+
+
+- **Equity analysts & portfolio managers:** fast daily **triage** of stock moves across a watchlist.
+- **IR/Comms teams & executives:** a **plain-English “reason why”** summary for major price moves.
+- **Ops & data teams:** a **ready-made template** for bringing unstructured data into a **warehouse-native AI workflow**.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '010'>Project Setup & Run Guide </b> </p></div>
+
+
+**★ Google Cloud project**:
+- **Pick or create a project** in Google Cloud Console. Copy the **Project ID** (e.g., `my-project-12345`).
+- **Turn on APIs**: In that project, enable **Vertex AI API** and **BigQuery Connection API**.
+- **Make a service account** (IAM & Admin → Service Accounts → **Create**): name it like `kaggle-runner`.
+  - Give these roles (*least privilege*): **BigQuery Admin, Vertex AI User, Service Usage Admin**.
+    - Open the new account → **Keys** → **Add key** → **Create new key** → JSON. A key file downloads.
+
+**★ Kaggle Notebook**:
+- In Kaggle, open your notebook → **Add-ons** → **Secrets**.
+- Add two secrets:
+  - `GCP_PROJECT_ID` = your Project ID.
+  - `GCP_SA_KEY` = open the downloaded JSON file and paste the whole content.
+- Configure Google Cloud SDK → **Add-ons** → **Google Cloud SDK**
+
+**★ First Run**: grant connection access
+- Run the notebook setup cells. This creates a BigQuery external connection (named `llm-connection`).
+- In Google Cloud **Console** → **BigQuery** → **External connections**, open llm-connection and copy its Service Account (looks like `bqcx-...@...gserviceaccount.com`).
+- Go to **IAM & Admin** → **Grant Access**: paste that service account, give it **Vertex AI User**, and **Save**.
+
+That’s it—your notebook can now securely use BigQuery + Vertex AI for the analysis. Setup notes were inspired by the [Kaggle notebook](https://www.kaggle.com/code/fissalalsharef/bigquery-ai-the-patent-analyst-project#Google-Cloud-Project-Setup). Thank you to the author and Kaggle community
+
+
+- Setup Creds and Configure
+
+
+```python
+from kaggle_secrets import UserSecretsClient
+user_secrets = UserSecretsClient()
+project_id = user_secrets.get_secret("GCP_PROJECT_ID")
+gcp_key_json = user_secrets.get_secret("GCP_SA_KEYS")
+location = 'us'
+
+import os
+key_file_path = 'gcp_key.json'
+try:
+    with open(key_file_path, 'w') as f:
+        f.write(gcp_key_json)
+    
+    !gcloud auth activate-service-account --key-file={key_file_path} > /dev/null 2>&1
+    !gcloud config set project {project_id} > /dev/null 2>&1
+    
+finally:
+    if os.path.exists(key_file_path):
+        os.remove(key_file_path)
+
+```
+
+
+- After executing the above code, make a connection to GCP by running the following commands
+
+
+```sh
+!bq mk --connection --location={location} --connection_type=CLOUD_RESOURCE llm-connection > /dev/null 2>&1
+!bq show --connection --location={location} llm-connection > /dev/null 2>&1
+```
+
+Free-credit limits mean the live demo is constrained. We recommend using **your own GCP credentials & configs** and running the notebook for your tickers. 
+
+This code sets up BigQuery remote GenAI models, ingests prices & news, computes z-scores/abnormal returns, links events↔headlines via embeddings/keywords, generates 2–4 sentence summaries + tone, labels days as Signal/Weak/Noise, and produces a 5-day backtest.
+
+
+```python
+from __future__ import annotations
+
+import os
+import re
+import uuid
+import datetime as dt
+from dataclasses import dataclass
+from typing import Optional, List, Dict, Any, Iterable
+
+import pandas as pd
+import pandas_gbq
+from pandas_gbq import to_gbq
+
+import yfinance as yf
+from dateutil import parser as dateparser
+from google.cloud import bigquery
+
+try:
+    from IPython.display import display 
+    _HAS_DISPLAY = True
+except Exception:
+    _HAS_DISPLAY = False
+
+
+@dataclass
+class BQConfig:
+    project_id: str = os.getenv("GCP_PROJECT_ID")
+    location:   str = os.getenv("GCP_LOCATION")
+    dataset_id: str = os.getenv("BQ_DATASET")
+    connection_id: str = os.getenv("CONNECTION_ID")
+
+
+class MarketSignalPipeline:
+    """
+    Universal, parameterized wrapper around your end-to-end pipeline.
+    """
+
+    def __init__(
+        self,
+        cfg: Optional[BQConfig] = None,
+        news_lookback_days: int = 120,
+        cosine_min: float = 0.60,
+        window_days: int = 2,
+        news_feeds: Optional[Dict[str, str]] = None
+    ):
+        self.cfg = cfg or BQConfig()
+        self.PROJECT_ID = self.cfg.project_id
+        self.LOCATION   = self.cfg.location
+        self.DATASET_ID = self.cfg.dataset_id
+        self.BQDFT      = f"`{self.PROJECT_ID}.{self.DATASET_ID}`"
+
+        self.client = bigquery.Client(project=self.PROJECT_ID, location=self.LOCATION)
+        self.client.create_dataset(
+            bigquery.Dataset(f"{self.PROJECT_ID}.{self.DATASET_ID}"),
+            exists_ok=True
+        )
+        print("✅ BigQuery ready:", self.PROJECT_ID, self.DATASET_ID, "in", self.LOCATION)
+
+        # Connection candidates
+        region_lower = self.LOCATION.lower()
+        self.CANDIDATES = [f"{region_lower}.llm-connection"]
+
+        # Connection id from external connection of BigQuery
+        self.CONNECTION_ID = self.cfg.connection_id
+
+        # GEN AI Models 
+        self.EMB_MODEL: Optional[str] = None
+        self.GEN_MODEL: Optional[str] = None
+
+        # Tunables
+        self.NEWS_LOOKBACK_DAYS = news_lookback_days
+        self.COSINE_MIN         = cosine_min
+        self.WINDOW_DAYS        = window_days
+
+        # News feeds we can feed this with premium as well
+        self.NEWS_FEEDS: Dict[str, str] = news_feeds or {
+            "Reuters Business": "https://feeds.reuters.com/reuters/businessNews",
+            "WSJ Markets": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+            "Yahoo Finance": "https://finance.yahoo.com/rss/topstories",
+        }
+
+        # Keywords (set per-run via set_keywords / run_all)
+        self.TICKER_KEYWORDS: Dict[str, List[str]] = {}
+
+    # ------------------------- #
+    #      Setup / Models       #
+    # ------------------------- #
+    def try_create_models(self, conn_id: str) -> bool:
+        try:
+            ddl = f"""
+            CREATE SCHEMA IF NOT EXISTS `{self.PROJECT_ID}.{self.DATASET_ID}` OPTIONS(location='{self.LOCATION}');
+    
+            CREATE OR REPLACE MODEL `{self.PROJECT_ID}.{self.DATASET_ID}.ms_gen`
+              REMOTE WITH CONNECTION `{conn_id}`
+              OPTIONS (endpoint = 'gemini-2.5-flash');
+    
+            CREATE OR REPLACE MODEL `{self.PROJECT_ID}.{self.DATASET_ID}.ms_embed`
+              REMOTE WITH CONNECTION `{conn_id}`
+              OPTIONS (endpoint = 'text-embedding-004');
+            """
+            self.client.query(ddl).result()
+            print("✅ Remote models created via connection:", conn_id)
+            return True
+        except Exception as e:
+            print(f"⚠️ Could not create models with {conn_id}: {e}")
+            return False
+
+    def setup_models(self) -> None:
+        for c in self.CANDIDATES:
+            if self.try_create_models(c):
+                self.CONNECTION_ID = c
+                break
+
+        if self.CONNECTION_ID is None:
+            raise RuntimeError("No working external connection found. Check your connection name/region & permissions.")
+
+        self.EMB_MODEL = f"{self.PROJECT_ID}.{self.DATASET_ID}.ms_embed"
+        self.GEN_MODEL = f"{self.PROJECT_ID}.{self.DATASET_ID}.ms_gen"
+        print("EMB_MODEL =", self.EMB_MODEL)
+        print("GEN_MODEL =", self.GEN_MODEL)
+
+    # ------------------------- #
+    #  Price loading & returns  #
+    # ------------------------- #
+    def _prices_table_exists(self) -> bool:
+        try:
+            self.client.get_table(f"{self.PROJECT_ID}.{self.DATASET_ID}.prices")
+            return True
+        except Exception:
+            return False
+
+    def load_prices_to_bq(
+        self,
+        ticker: str,
+        benchmark: str = "^GSPC",
+        start: str = "2015-01-01",
+        end: Optional[str] = None,
+        if_exists_strategy: Optional[str] = None,
+    ) -> str:
+        """
+        Loads prices for a single ticker and benchmark.
+        - Preserves your original transform.
+        - Will 'replace' if table doesn't exist, otherwise 'append' (unless overridden).
+        """
+        end = end or dt.date.today().isoformat()
+        df = yf.download([ticker, benchmark], start=start, end=end, auto_adjust=True, progress=False)
+        if df.empty:
+            raise ValueError(f"No price data returned for {ticker}. Check symbols or dates.")
+        df = df["Close"].reset_index().rename(columns={ticker: "close", benchmark: "bench_close"})
+        df["ticker"] = ticker
+        df["benchmark"] = benchmark
+        df.rename(columns={"Date": "date"}, inplace=True)
+
+        # Decide write mode (append for additional tickers)
+        if_exists = if_exists_strategy or ("append" if self._prices_table_exists() else "replace")
+        pandas_gbq.to_gbq(df, f"{self.DATASET_ID}.prices", project_id=self.PROJECT_ID, if_exists=if_exists)
+        table = f"{self.PROJECT_ID}.{self.DATASET_ID}.prices"
+        print(f"✅ Loaded prices to: {table}  (mode={if_exists})")
+        return table
+
+    def load_prices_many(
+        self,
+        tickers: Iterable[str],
+        benchmark: str = "^GSPC",
+        start: str = "2018-01-01",
+        end: Optional[str] = None,
+    ) -> None:
+        tickers = list(tickers)
+        if not tickers:
+            raise ValueError("No tickers provided.")
+        for i, t in enumerate(tickers):
+            # first ticker can 'replace', others will append automatically
+            self.load_prices_to_bq(
+                ticker=t,
+                benchmark=benchmark,
+                start=start,
+                end=end,
+                if_exists_strategy=("replace" if i == 0 and not self._prices_table_exists() else "append"),
+            )
+
+    def build_daily_returns(self) -> None:
+        sql_returns = f"""
+        CREATE OR REPLACE TABLE {self.BQDFT}.daily_returns AS
+        WITH base AS (
+          SELECT
+            ticker,
+            DATE(date) AS date,
+            close,
+            bench_close,
+            SAFE_DIVIDE(close - LAG(close) OVER (PARTITION BY ticker ORDER BY date),
+                        LAG(close) OVER (PARTITION BY ticker ORDER BY date)) AS r,
+            SAFE_DIVIDE(bench_close - LAG(bench_close) OVER (PARTITION BY ticker ORDER BY date),
+                        LAG(bench_close) OVER (PARTITION BY ticker ORDER BY date)) AS r_mkt
+          FROM {self.BQDFT}.prices
+        )
+        SELECT
+          *,
+          STDDEV_SAMP(r)     OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS vol20,
+          STDDEV_SAMP(r_mkt) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 120 PRECEDING AND 1 PRECEDING) AS vol_mkt120,
+          SAFE_DIVIDE(r, NULLIF(STDDEV_SAMP(r) OVER (PARTITION BY ticker ORDER BY date ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING),0)) AS z_day
+        FROM base;
+        """
+        self.client.query(sql_returns).result()
+        print("✅ daily_returns created")
+
+    def build_linear_model(self) -> None:
+        create_model_sql = f"""
+        CREATE OR REPLACE MODEL `lunar-geography-472503-n7.noise_to_decision_with_ai.mm_linear_regression`
+        OPTIONS(model_type='linear_reg', input_label_cols=['r']) AS
+        SELECT r, r_mkt
+        FROM `lunar-geography-472503-n7.noise_to_decision_with_ai.daily_returns`
+        WHERE r IS NOT NULL AND r_mkt IS NOT NULL;
+        """
+        self.client.query(create_model_sql).result()
+        print("✅ Model created")
+
+    def build_abnormal_returns(self) -> None:
+        sql_ar = f"""
+        CREATE OR REPLACE TABLE {self.BQDFT}.abnormal_returns AS
+        WITH pred AS (
+          SELECT
+            ticker, date, r, r_mkt,
+            predicted_r AS r_hat
+          FROM ML.PREDICT(
+            MODEL {self.BQDFT}.mm_linear_regression,
+            (SELECT ticker, date, r, r_mkt
+             FROM {self.BQDFT}.daily_returns
+             WHERE r IS NOT NULL AND r_mkt IS NOT NULL)
+          )
+        ),
+        stats AS (
+          SELECT
+            ticker,
+            date,
+            r,
+            r_mkt,
+            r_hat,
+            (r - r_hat) AS ar,
+            -- trailing 120 trading days (excluding today)
+            AVG(r) OVER (
+              PARTITION BY ticker
+              ORDER BY date
+              ROWS BETWEEN 120 PRECEDING AND 1 PRECEDING
+            ) AS mean_r_120,
+            STDDEV_SAMP(r) OVER (
+              PARTITION BY ticker
+              ORDER BY date
+              ROWS BETWEEN 120 PRECEDING AND 1 PRECEDING
+            ) AS sd_r_120,
+            STDDEV_SAMP(r - r_hat) OVER (
+              PARTITION BY ticker
+              ORDER BY date
+              ROWS BETWEEN 120 PRECEDING AND 1 PRECEDING
+            ) AS sd_ar_120
+          FROM pred
+        )
+        SELECT
+          ticker,
+          date,
+          r,
+          r_mkt,
+          r_hat,
+          ar,
+          SAFE_DIVIDE(ar, sd_ar_120)                    AS z_ar,
+          SAFE_DIVIDE(r - mean_r_120, sd_r_120)         AS z_day
+        FROM stats;
+        """
+        self.client.query(sql_ar).result()
+        print("✅ abnormal_returns (with z_day) created")
+
+    def build_trend_10d(self) -> None:
+        sql_trend = f"""
+        CREATE OR REPLACE TABLE {self.BQDFT}.trend_10d AS
+        WITH base AS (
+          SELECT
+            ticker,
+            date,
+            close,
+            SAFE.LOG(close) AS ln_p,
+            ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date) AS t
+          FROM {self.BQDFT}.prices
+          WHERE close IS NOT NULL AND close > 0
+        ),
+        roll AS (
+          SELECT
+            ticker,
+            date,
+            COUNT(*)        OVER w AS n,
+            SUM(t)          OVER w AS sum_t,
+            SUM(ln_p)       OVER w AS sum_y,
+            SUM(t*t)        OVER w AS sum_tt,
+            SUM(ln_p*t)     OVER w AS sum_ty,
+            SUM(ln_p*ln_p)  OVER w AS sum_yy
+          FROM base
+          WINDOW w AS (
+            PARTITION BY ticker
+            ORDER BY date
+            ROWS BETWEEN 9 PRECEDING AND CURRENT ROW
+          )
+        ),
+        fit AS (
+          SELECT
+            ticker,
+            date,
+            n,
+            (sum_tt - (sum_t*sum_t)/CAST(n AS FLOAT64)) AS sxx,
+            (sum_ty - (sum_t*sum_y)/CAST(n AS FLOAT64)) AS sxy,
+            (sum_yy - (sum_y*sum_y)/CAST(n AS FLOAT64)) AS syy
+          FROM roll
+        ),
+        stats AS (
+          SELECT
+            ticker,
+            date,
+            n,
+            sxx,
+            sxy,
+            syy,
+            SAFE_DIVIDE(sxy, sxx) AS slope,
+            CASE
+              WHEN n >= 3 AND sxx > 0 THEN
+                SAFE_DIVIDE(syy - SAFE_DIVIDE(sxy*sxy, sxx), n - 2)
+            END AS s2
+          FROM fit
+        )
+        SELECT
+          ticker,
+          date,
+          n,
+          slope,
+          s2,
+          CASE
+            WHEN n >= 3 AND sxx > 0 AND s2 IS NOT NULL
+              THEN SAFE_DIVIDE(slope, SQRT(SAFE_DIVIDE(s2, sxx)))
+            ELSE NULL
+          END AS t_stat
+        FROM stats;
+        """
+        self.client.query(sql_trend).result()
+        print("✅ trend_10d created")
+
+    # -------------------------
+    #       News ingest
+    # -------------------------
+    @staticmethod
+    def _parse_ts(x: Any) -> dt.datetime:
+        try:
+            ts = dateparser.parse(x)
+            return ts if ts and ts.tzinfo else ts.replace(tzinfo=dt.timezone.utc)
+        except Exception:
+            return dt.datetime.now(dt.timezone.utc)
+
+    @staticmethod
+    def _ensure_feedparser_installed() -> None:
+        try:
+            import feedparser  # noqa
+        except Exception:
+            import subprocess, sys
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "feedparser", "-q"])
+
+    def load_news_raw(self) -> None:
+        self._ensure_feedparser_installed()
+        import feedparser  # type: ignore
+
+        items: List[Dict[str, Any]] = []
+        for src, url in self.NEWS_FEEDS.items():
+            feed = feedparser.parse(url)
+            if not feed or not getattr(feed, "entries", None):
+                continue
+            for e in feed.entries[:50]:
+                title = (e.get("title","") or "").strip()
+                summary = re.sub("<[^>]+>", " ", e.get("summary","") or "").strip()
+                ts = self._parse_ts(e.get("published", e.get("updated", "")))
+                items.append({
+                    "id": str(uuid.uuid4()),
+                    "date": ts,
+                    "ticker": None,
+                    "title": title[:500],
+                    "content": summary[:4000],
+                    "source": src,
+                    "url": e.get("link",""),
+                })
+
+        df_news = pd.DataFrame(items)
+        pandas_gbq.to_gbq(df_news, f"{self.DATASET_ID}.news_raw", project_id=self.PROJECT_ID, if_exists="replace")
+        print("✅ news_raw loaded:", len(df_news))
+
+    # -------------------------
+    #  Embeddings & similarity
+    # -------------------------
+    def build_news_embeddings(self) -> None:
+        assert self.EMB_MODEL, "Call setup_models() first."
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.news_embeddings` AS
+        SELECT
+          t.id,
+          t.date,
+          t.ticker,
+          t.title,
+          t.ml_generate_embedding_result AS embedding
+        FROM ML.GENERATE_EMBEDDING(
+          MODEL `{self.EMB_MODEL}`,
+          (
+            SELECT
+              id,
+              date,
+              ticker,
+              title,
+              CONCAT(IFNULL(title,''), '\\n', IFNULL(content,'')) AS content
+            FROM `{self.PROJECT_ID}.{self.DATASET_ID}.news_raw`
+            WHERE (title IS NOT NULL OR content IS NOT NULL)
+              AND DATE(date) >= DATE_SUB(CURRENT_DATE(), INTERVAL {self.NEWS_LOOKBACK_DAYS} DAY)
+          )
+        ) AS t;
+        """).result()
+        print("✅ news_embeddings rebuilt")
+
+    def build_ticker_embeddings(self) -> None:
+        assert self.EMB_MODEL, "Call setup_models() first."
+        # Ticker blobs (unchanged logic)
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.ticker_blobs` AS
+        WITH base AS (
+          SELECT
+            ticker,
+            date,
+            PERCENTILE_CONT(z_day, 0.5) OVER (PARTITION BY ticker) AS med_z_day,
+            PERCENTILE_CONT(z_ar,  0.5) OVER (PARTITION BY ticker) AS med_z_ar,
+            ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date DESC) AS rn
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.abnormal_returns`
+        )
+        SELECT
+          ticker,
+          CONCAT(
+            'Ticker ', ticker, ' recent context. ',
+            'Median z_day=', FORMAT('%+.2f', med_z_day),
+            ', median z_ar=', FORMAT('%+.2f', med_z_ar)
+          ) AS blob
+        FROM base
+        WHERE rn = 1;
+        """).result()
+
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.ticker_embeddings_raw` AS
+        SELECT *
+        FROM ML.GENERATE_EMBEDDING(
+          MODEL `{self.EMB_MODEL}`,
+          (
+            SELECT
+              ticker,
+              CAST(blob AS STRING) AS content
+            FROM `{self.PROJECT_ID}.{self.DATASET_ID}.ticker_blobs`
+            WHERE blob IS NOT NULL
+          )
+        );
+        """).result()
+
+        # Detect embedding column name in ticker_embeddings_raw
+        rows = list(self.client.query(f"""
+        SELECT column_name, data_type
+        FROM `{self.PROJECT_ID}.{self.DATASET_ID}.INFORMATION_SCHEMA.COLUMNS`
+        WHERE table_name = 'ticker_embeddings_raw'
+        ORDER BY ordinal_position
+        """).result())
+        tick_emb_col = None
+        for r in rows:
+            if "embedding" in (r["column_name"] or "").lower() and (r["data_type"] or "").startswith(("ARRAY<","VECTOR<")):
+                tick_emb_col = r["column_name"]; break
+        if tick_emb_col is None:
+            raise ValueError("No embedding column found in ticker_embeddings_raw.")
+
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.ticker_embeddings` AS
+        SELECT ticker, `{tick_emb_col}` AS embedding
+        FROM `{self.PROJECT_ID}.{self.DATASET_ID}.ticker_embeddings_raw`;
+        """).result()
+        print("✅ ticker_embeddings ready")
+
+    def _detect_news_embedding_col(self) -> str:
+        rows = list(self.client.query(f"""
+        SELECT column_name, data_type
+        FROM `{self.PROJECT_ID}.{self.DATASET_ID}.INFORMATION_SCHEMA.COLUMNS`
+        WHERE table_name = 'news_embeddings'
+        ORDER BY ordinal_position
+        """).result())
+        news_emb_col = None
+        for r in rows:
+            if "embedding" in (r["column_name"] or "").lower() and (r["data_type"] or "").startswith(("ARRAY<","VECTOR<")):
+                news_emb_col = r["column_name"]; break
+        if news_emb_col is None:
+            raise ValueError("No embedding column found in news_embeddings.")
+        return news_emb_col
+
+    def rebuild_similarity(self) -> None:
+        news_emb_col = self._detect_news_embedding_col()
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.news_ticker_similarity` AS
+        WITH src AS (
+          SELECT
+            n.id AS news_id,
+            t.ticker AS ticker,
+            CAST(n.{news_emb_col} AS ARRAY<FLOAT64>) AS n_emb,
+            CAST(t.embedding     AS ARRAY<FLOAT64>) AS t_emb
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.news_embeddings` n
+          CROSS JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.ticker_embeddings` t
+        ),
+        scored AS (
+          SELECT
+            news_id,
+            ticker,
+            SAFE_DIVIDE(
+              (SELECT SUM(ne * te)
+                 FROM UNNEST(n_emb) AS ne WITH OFFSET i
+                 JOIN UNNEST(t_emb) AS te WITH OFFSET j
+                   ON i = j),
+              (
+                SQRT((SELECT SUM(ne * ne) FROM UNNEST(n_emb) AS ne)) *
+                SQRT((SELECT SUM(te * te) FROM UNNEST(t_emb) AS te))
+              )
+            ) AS cosine_sim
+          FROM src
+        )
+        SELECT news_id, ticker, cosine_sim
+        FROM scored
+        WHERE cosine_sim IS NOT NULL AND cosine_sim >= {self.COSINE_MIN};
+        """).result()
+        print("✅ news_ticker_similarity rebuilt")
+
+    # -------------------------
+    # Keywords (parameterized)
+    # -------------------------
+    def set_keywords(self, ticker_keywords: Dict[str, Iterable[str]]) -> None:
+        # store normalized copy
+        self.TICKER_KEYWORDS = {t.upper(): [str(k).lower() for k in ks] for t, ks in ticker_keywords.items()}
+
+    def keyword_fallback(self) -> None:
+        if not self.TICKER_KEYWORDS:
+            print("⚠️ No TICKER_KEYWORDS provided; skipping keyword fallback.")
+            return
+
+        rows = [{"ticker": t, "keyword": k} for t, ks in self.TICKER_KEYWORDS.items() for k in ks]
+        to_gbq(pd.DataFrame(rows), f"{self.DATASET_ID}.ticker_keywords",
+               project_id=self.PROJECT_ID, if_exists="replace")
+
+        self.client.query(fr"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.news_ticker_keyword` AS
+        WITH n AS (
+          SELECT id, LOWER(CONCAT(' ', title, ' ', content, ' ')) AS blob
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.news_raw`
+          WHERE date >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {self.NEWS_LOOKBACK_DAYS} DAY)
+        ),
+        k AS (SELECT ticker, LOWER(keyword) AS keyword FROM `{self.PROJECT_ID}.{self.DATASET_ID}.ticker_keywords`)
+        SELECT
+          n.id AS news_id, k.ticker, {self.COSINE_MIN} AS cosine_sim
+        FROM n JOIN k
+        ON REGEXP_CONTAINS(
+             n.blob,
+             r'(?:^|\W)' ||
+             REGEXP_REPLACE(k.keyword, r'([\.^$|?*+()\[\]{{}}])', r'\\\1') ||
+             r'(?:\W|$)'
+           );
+        """).result()
+        print("✅ news_ticker_keyword rebuilt")
+
+    def link_news_events(self) -> None:
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.news_ticker_links` AS
+        SELECT news_id, ticker, MAX(cosine_sim) AS best_sim
+        FROM (
+          SELECT * FROM `{self.PROJECT_ID}.{self.DATASET_ID}.news_ticker_similarity`
+          UNION ALL
+          SELECT * FROM `{self.PROJECT_ID}.{self.DATASET_ID}.news_ticker_keyword`
+        )
+        GROUP BY news_id, ticker;
+        
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.event_news_links` AS
+        SELECT
+          m.ticker, m.date, m.z_day, m.z_ar,
+          nr.id AS news_id, nr.title, nr.content, nr.source, nr.url, nr.date AS news_time
+        FROM `{self.PROJECT_ID}.{self.DATASET_ID}.abnormal_returns` m
+        JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.news_ticker_links` l USING (ticker)
+        JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.news_raw` nr ON nr.id = l.news_id
+        WHERE (ABS(m.z_day) >= 1.96 OR ABS(m.z_ar) >= 1.96)
+          AND DATE(nr.date) BETWEEN DATE_SUB(m.date, INTERVAL {self.WINDOW_DAYS} DAY)
+                                AND DATE_ADD(m.date,  INTERVAL {self.WINDOW_DAYS} DAY);
+        """).result()
+        print("✅ event_news_links rebuilt")
+
+    # -------------------------
+    # AI summaries, labels, backtest (unchanged SQL)
+    # -------------------------
+    def build_event_ai_summary(self) -> None:
+        assert self.GEN_MODEL, "Call setup_models() first."
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_summary` AS
+        WITH grp AS (
+          SELECT
+            ticker,
+            date,
+            ANY_VALUE(z_day) AS z_day,
+            ANY_VALUE(z_ar)  AS z_ar,
+            COUNT(*) AS news_count,
+            STRING_AGG(
+              CONCAT('[', source, '] ', title, ' — ', SUBSTR(content, 1, 160)),
+              ' || '
+              ORDER BY news_time DESC
+              LIMIT 20
+            ) AS headlines_blob
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_news_links`
+          GROUP BY ticker, date
+        )
+        SELECT
+          g.ticker,
+          g.date,
+          g.z_day,
+          g.z_ar,
+          g.news_count,
+          (
+            SELECT ml_generate_text_llm_result
+            FROM ML.GENERATE_TEXT(
+              MODEL `{self.GEN_MODEL}`,
+              (
+                SELECT CONCAT(
+                  'Explain in plain investor language the likely drivers behind ', g.ticker,
+                  ' on ', CAST(g.date AS STRING),
+                  '. Use light terms like beat/miss and explain briefly. ',
+                  'Keep to 2–4 sentences. Headlines: ',
+                  g.headlines_blob
+                ) AS prompt
+              ),
+              STRUCT(
+                256 AS max_output_tokens,
+                0.2 AS temperature,
+                TRUE AS flatten_json_output
+              )
+            )
+          ) AS summary
+        FROM grp AS g;
+        """).result()
+
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_tone` AS
+        WITH grp AS (
+          SELECT
+            ticker,
+            date,
+            STRING_AGG(
+              CONCAT('[', source, '] ', title, ' — ', SUBSTR(content, 1, 160)),
+              ' || '
+              ORDER BY news_time DESC
+              LIMIT 20
+            ) AS headlines_blob
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_news_links`
+          GROUP BY ticker, date
+        )
+        SELECT
+          g.ticker,
+          g.date,
+          CASE
+            WHEN LOWER(REGEXP_REPLACE((
+              SELECT ml_generate_text_llm_result
+              FROM ML.GENERATE_TEXT(
+                MODEL `{self.GEN_MODEL}`,
+                (
+                  SELECT CONCAT(
+                    'Are the headlines net positive for equity holders? Answer True or False only. ',
+                    g.headlines_blob
+                  ) AS prompt
+                ),
+                STRUCT(
+                  16 AS max_output_tokens,
+                  0.0 AS temperature,
+                  TRUE AS flatten_json_output
+                )
+              )
+            ), r'[^a-z]', '')) = 'true'
+            THEN TRUE
+            ELSE FALSE
+          END AS is_positive
+        FROM grp AS g;
+        """).result()
+
+        print("✅ event_ai_summary + event_ai_tone rebuilt (CTE pre-aggregation fix)")
+
+    def build_event_labels(self) -> None:
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.event_label` AS
+        WITH base AS (
+          SELECT
+            a.ticker, a.date, a.z_day, a.z_ar,
+            COALESCE(s.news_count,0) AS news_count,
+            CASE
+              WHEN t.is_positive IS TRUE  THEN  1
+              WHEN t.is_positive IS FALSE THEN -1
+              ELSE 0
+            END AS ai_tilt
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.abnormal_returns` a
+          LEFT JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_summary` s USING (ticker, date)
+          LEFT JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_tone`   t USING (ticker, date)
+          WHERE (ABS(a.z_day) >= 1.96 OR ABS(a.z_ar) >= 1.96)
+        ),
+        score AS (
+          SELECT
+            *,
+            LEAST(GREATEST(ABS(COALESCE(z_day,0)), ABS(COALESCE(z_ar,0))), 4)/4 * 0.4
+            + LEAST(news_count, 5)/5 * 0.4
+            + ((ai_tilt + 1)/2) * 0.2 AS signal_score
+          FROM base
+        )
+        SELECT
+          *,
+          CASE
+            WHEN signal_score >= 0.65 THEN 'Signal'
+            WHEN signal_score >= 0.40 THEN 'Weak'
+            ELSE 'Noise'
+          END AS label,
+          CASE
+            WHEN signal_score >= 0.65 THEN 0.75
+            WHEN signal_score >= 0.40 THEN 0.55
+            ELSE 0.35
+          END AS confidence
+        FROM score;
+        """).result()
+        print("✅ event_label rebuilt")
+
+    def build_event_ai_summary_filled(self) -> None:
+        assert self.GEN_MODEL, "Call setup_models() first."
+        self.client.query(f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_summary_filled` AS
+        WITH have AS (
+          SELECT ticker, date, z_day, z_ar, news_count, summary
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_summary`
+        ),
+        need AS (
+          SELECT e.ticker, e.date, a.z_day, a.z_ar
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_label` e
+          JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.abnormal_returns` a USING(ticker, date)
+          LEFT JOIN have h USING(ticker, date)
+          WHERE h.ticker IS NULL
+        )
+        SELECT * FROM have
+        UNION ALL
+        SELECT
+          n.ticker,
+          n.date,
+          n.z_day,
+          n.z_ar,
+          0 AS news_count,
+          (
+            SELECT ml_generate_text_llm_result
+            FROM ML.GENERATE_TEXT(
+              MODEL `{self.GEN_MODEL}`,
+              (SELECT CONCAT(
+                'Explain in plain investor language a statistically significant move when no clear headlines are present. ',
+                'Use the data provided and avoid speculation. ',
+                'Say briefly whether it looks like technical flow vs. idiosyncratic news. ',
+                'z_day=', FORMAT('%+.2f', n.z_day), ', z_ar=', FORMAT('%+.2f', n.z_ar), '.'
+              ) AS prompt),
+              STRUCT(192 AS max_output_tokens, 0.2 AS temperature, TRUE AS flatten_json_output)
+            )
+          ) AS summary
+        FROM need n;
+        """).result()
+        print("✅ event_ai_summary_filled ready (uses stats-only when no news)")
+
+    def build_backtest(self) -> None:
+        sql_bt = f"""
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.forward_5d` AS
+        WITH r AS (
+          SELECT
+            ticker, date, close,
+            LEAD(close, 5) OVER (PARTITION BY ticker ORDER BY date) AS close_5d
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.prices`
+        )
+        SELECT
+          ticker, date,
+          SAFE_DIVIDE(close_5d - close, close) AS fwd_5d
+        FROM r;
+        
+        CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.backtest_5d` AS
+        WITH j AS (
+          SELECT e.ticker, e.date, e.label, e.confidence, e.z_day, e.z_ar, f.fwd_5d
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_label` e
+          JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.forward_5d` f USING (ticker, date)
+          WHERE f.fwd_5d IS NOT NULL
+        )
+        SELECT
+          label,
+          CASE WHEN COALESCE(ABS(z_day),0) >= ABS(COALESCE(z_ar,0)) THEN SIGN(z_day) ELSE SIGN(z_ar) END AS shock_dir,
+          COUNT(*) AS n_events,
+          AVG(fwd_5d) AS avg_fwd5d,
+          AVG(CASE WHEN fwd_5d > 0 THEN 1 ELSE 0 END) AS hit_rate
+        FROM j
+        GROUP BY label, shock_dir
+        ORDER BY label, shock_dir;
+        """
+        self.client.query(sql_bt).result()
+        print("✅ backtest_5d created")
+
+    # -------------------------
+    # Readouts
+    # -------------------------
+    def verdict_panel(self, ticker: str, date: str | dt.date):
+        as_of = dt.date.fromisoformat(date) if isinstance(date, str) else date
+        q = f"""
+        WITH d AS (
+          SELECT a.ticker, a.date, a.r AS day_ret, a.z_day, a.z_ar
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.abnormal_returns` a
+          WHERE a.ticker = @t AND a.date = @d
+        ),
+        tr AS (
+          SELECT t_stat FROM `{self.PROJECT_ID}.{self.DATASET_ID}.trend_10d`
+          WHERE ticker = @t AND date = @d
+        ),
+        lab AS (
+          SELECT label, confidence, signal_score
+          FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_label`
+          WHERE ticker = @t AND date = @d
+        ),
+        sum AS (
+          SELECT summary FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_summary_filled`
+          WHERE ticker = @t AND date = @d
+        )
+        SELECT d.*, tr.t_stat, lab.label, lab.confidence, lab.signal_score, sum.summary
+        FROM d
+        LEFT JOIN tr ON TRUE
+        LEFT JOIN lab ON TRUE
+        LEFT JOIN sum ON TRUE;
+        """
+        job = self.client.query(q, job_config=bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("t","STRING",ticker),
+                bigquery.ScalarQueryParameter("d","DATE",as_of),
+            ]
+        ))
+        df = job.result().to_dataframe()
+        if df.empty:
+            print(f"No data for {ticker} on {as_of}")
+        else:
+            if _HAS_DISPLAY:
+                display(df)
+            else:
+                print(df.to_string(index=False))
+
+    def recent_signals_and_backtest(self, limit: int = 200) -> None:
+        signals = self.client.query(f"""
+        SELECT s.*, e.summary
+        FROM `{self.PROJECT_ID}.{self.DATASET_ID}.event_label` s
+        LEFT JOIN `{self.PROJECT_ID}.{self.DATASET_ID}.event_ai_summary` e USING (ticker, date)
+        ORDER BY date DESC, signal_score DESC
+        LIMIT {int(limit)}
+        """).result().to_dataframe()
+
+        bt = self.client.query(f"""
+        SELECT * FROM `{self.PROJECT_ID}.{self.DATASET_ID}.backtest_5d` ORDER BY label, shock_dir
+        """).result().to_dataframe()
+
+        print("=== Recent Signals ===")
+        for _, r in signals.iterrows():
+            zd, za = r.get("z_day") or 0, r.get("z_ar") or 0
+            direction = "UpShock" if (abs(zd) >= abs(za) and zd >= 0) or (abs(za) > abs(zd) and za >= 0) else "DownShock"
+            conf = int((r.get("confidence") or 0)*100)
+            z_max = max(abs(zd), abs(za))
+            news = int(r.get("news_count") or 0)
+            print(f"{r['date']}  {r['ticker']}  {direction}  z≈{z_max:.2f}σ  |  {r['label']}  (conf {conf}%)  news={news}")
+            if isinstance(r.get("summary"), str) and r["summary"].strip():
+                print("  ↳", r["summary"].strip()[:350])
+            print("-")
+
+        print("\n=== Backtest Summary (5d fwd) ===")
+        print(bt.to_string(index=False))
+
+    # -------------------------
+    # Orchestrator
+    # -------------------------
+    def run_all(
+        self,
+        tickers: Iterable[str],
+        ticker_keywords: Optional[Dict[str, Iterable[str]]] = None,
+        benchmark: str = "^GSPC",
+        start: str = "2018-01-01",
+        end: Optional[str] = None,
+    ) -> None:
+        """End-to-end run for any set of tickers + keywords."""
+        # Setup models
+        self.setup_models()
+
+        # Load prices for every ticker (append-safe)
+        self.load_prices_many(tickers=tickers, benchmark=benchmark, start=start, end=end)
+
+        # Core tables & models
+        self.build_daily_returns()
+        self.build_linear_model()
+        self.build_abnormal_returns()
+        self.build_trend_10d()
+
+        # News ingest & linking
+        self.load_news_raw()
+        self.build_news_embeddings()
+        self.build_ticker_embeddings()
+        self.rebuild_similarity()
+
+        # Optional: keywords per ticker for fallback
+        if ticker_keywords:
+            self.set_keywords(ticker_keywords)
+            self.keyword_fallback()
+        else:
+            # still create empty keyword table to keep later SQL union predictable
+            print("ℹ️ No keywords provided; similarity-only links will be used.")
+            self.client.query(f"""
+            CREATE OR REPLACE TABLE `{self.PROJECT_ID}.{self.DATASET_ID}.news_ticker_keyword` AS
+            SELECT CAST(NULL AS STRING) AS news_id, CAST(NULL AS STRING) AS ticker, CAST(NULL AS FLOAT64) AS cosine_sim
+            WHERE FALSE;
+            """).result()
+
+        self.link_news_events()
+
+        # AI outputs & labels
+        self.build_event_ai_summary()
+        self.build_event_labels()
+        self.build_event_ai_summary_filled()
+
+        # Backtest
+        self.build_backtest()
+
+```
+
+Use the following block to run the full pipeline with your watchlist and optional keyword fallback. `news_lookback_days` limits how far back we embed news, `cosine_min` is the similarity cutoff for linking headlines to tickers, and `window_days` controls the ±days around each event for matching news. `run_all` ingests prices/news, builds embeddings, generates summaries + tone, scores days as Signal/Weak/Noise, and creates a 5-day backtest. Then `verdict_panel` lets you inspect one date/ticker, and `recent_signals_and_backtest` prints recent labels plus the backtest table.
+
+
+```python
+pipeline = MarketSignalPipeline(
+    news_lookback_days=120,   # or any value you want
+    cosine_min=0.60,          # similarity threshold
+    window_days=2             # news±event window
+)
+
+tickers = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN"] 
+keywords = {
+    "AAPL": ["apple", "iphone", "ipad", "macbook", "tim cook"],
+    "MSFT": ["microsoft", "windows", "azure", "copilot", "satya nadella"],
+    "NVDA": ["nvidia", "gpu", "geforce", "cuda", "h100", "blackwell", "jensen huang"],
+    "GOOGL": ["google", "alphabet", "youtube", "sundar pichai"],
+    "AMZN":  ["amazon", "aws", "prime", "jeff bezos"],
+}
+
+# pipeline.run_all(
+#     tickers=tickers,
+#     ticker_keywords=keywords,
+#     benchmark="^GSPC",
+#     start="2018-01-01"
+# )
+
+# inspect a specific day/ticker
+pipeline.verdict_panel("AAPL", "2025-08-08")
+pipeline.recent_signals_and_backtest(limit=50)
+
+```
+
+After running the pipeline on recent Signal/Weak/Noise labels by ticker and date, each with z-scores, news count, and the 2–4 sentence AI summary, plus a 5-day forward return backtest table. This view highlights top events and their likely catalysts at a glance. Note: due to free-credit limits, the screenshot reflects a static run; use your own credentials for live refresh.
+
+<center><img src="https://i.postimg.cc/pLXjpH40/Screenshot-2025-09-21-at-11-34-12-AM.png"></center>
+<img src="https://i.postimg.cc/JnJD94Hh/Screenshot-2025-09-21-at-12-33-49-PM.png">
+
+.
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '011'>Interactive Signal Dashboard (Demo) </b> </p></div>
+
+
+Below is a snapshot of the dashboard; use the live link to explore signal scores by ticker, date, and news context. <i>Note:</i> due to free-credit limits, live refresh is paused—feel free to try the hosted demo, or run it with your own BigQuery credentials by following the steps mentioned above.
+
+<center><img src="https://i.postimg.cc/GtWLFkm3/Screenshot-2025-09-21-at-2-42-54-PM.png"></center>
+
+
+**AAPL on 2025-08-08 (prototype run)**
+
+- **What happened (numbers):**
+- **Daily return:** **+4.24%** (day_ret = 0.042358)
+- **Raw z-score:** **1.69σ** (z_day = 1.691366) → not quite ≥ 1.96
+- **Abnormal return z-score:** **2.35σ** (z_ar = 2.351215) → **statistically significant vs. market**
+- **10-day trend t-stat:** **1.38** (t_stat = 1.378697) → mild positive trend
+- **Label:** **Noise** (signal_score ≈ **0.335**, confidence **0.35**) → below our **0.40 “Weak”** threshold
+- **Summary (model output, completed from your truncation):**
+  > **Okay, let’s stick to the data:** **AAPL** rose **~4.2%**, with a **market-adjusted abnormal return ≈ 2.35σ**, which is statistically notable. With limited headline evidence around the event window, the move looks more like **technical/flow-driven strength** than a clear idiosyncratic catalyst. The recent **10-day trend** is only mildly positive (t≈1.38), so we treat this as **noise** rather than a firm signal.
+
+**Dashboard:** [Open demo](https://noise-to-signal.streamlit.app/) , ·**GitHub:** [Dashboard Source Code](https://github.com/Kush-Trivedi/DSSMM/)
+
+
+# <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '012'>Survey — BigQuery AI: Building the Future of Data </b> </p></div>
+
+
+- Team & Experience
+    - **Team Member**: Kush Trivedi
+        - **Certification**: [GCP Professional Machine Learning Engineer](https://google.accredible.com/d0c80e45-1f96-4fcc-b399-f240d7b04403?key=31082f28422ddfbbd2b46e898237f0dc0ccb65ea05bec4f18204e8819d36eefd#acc.0Z8EqVgU)
+        - Experience with **BigQuery AI**: 2 years
+        - Experience with **Google Cloud**: 5 years
+        - **Profile**: [LinkedIn](https://www.linkedin.com/in/kush-trivedi/), [Kaggle](https://www.kaggle.com/kushtrivedi14728)
+
+
+- **Feedback** on BigQuery AI (during this hackathon)
+> Overall experience was positive: the tooling is intuitive and building directly inside BigQuery reduced friction. 
+The main constraint was limited free credits, which restricted iterative debugging, broader backtesting, 
+and live refresh testing. With more credits, we would have demonstrated a larger watchlist, intraday bars, and 
+more extensive parameter sweeps for threshold calibration.
+
+
+- BigQuery AI **Highlights**
+    - **In-SQL GenAI:** `ML.GENERATE_TEXT` produces 2–4 sentence investor blurbs plus a binary tone, all inside BigQuery (no ETL) with inputs/outputs stored for audit.
+    - **Embeddings & match:** `ML.GENERATE_EMBEDDING` on news + ticker context, then cosine similarity in SQL to link events ↔ headlines.
+

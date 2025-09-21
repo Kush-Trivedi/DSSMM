@@ -1,0 +1,11 @@
+pandas
+pandas-gbq
+google-cloud-bigquery
+db-dtypes
+pyarrow
+yfinance
+python-dateutil
+feedparser
+ipython
+python-dotenv
+streamlit==1.49.0
