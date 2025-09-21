@@ -25,7 +25,7 @@ from google.cloud import bigquery
 
 # -------------- Streamlit page config --------------
 st.set_page_config(page_title="DSSMM", layout="wide", page_icon=":material/finance_mode:")
-st.title("Detecting :green[Statistically Significant] Market Moves with :blue[BigQuery AI]")
+st.title(":violet[D]etecting :green[Statistically Significant] :red[M]arket :red[M]oves with :blue[BigQuery AI]")
 
 # -------------- Top disclaimer --------------
 st.warning(
