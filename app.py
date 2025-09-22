@@ -1024,7 +1024,7 @@ row_df["date"] = pd.to_datetime(row_df["date"])
 # with co2:
     # st.text_input("Keywords (comma-separated)", value="apple, iphone, ipad, macbook, tim cook")
 
-st.success("Demo values from the Kaggle notebook. Inputs → Ticker: AAPL | Keywords: "apple, iphone, ipad, macbook, tim cook" | Date: 2025-08-08 or auto (latest available)")
+st.success("Demo values from the Kaggle notebook. Inputs → Ticker: AAPL | Keywords: 'apple, iphone, ipad, macbook, tim cook' | Date: 2025-08-08 or auto (latest available)")
 
 
 # =========================
