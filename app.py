@@ -1037,27 +1037,27 @@ with st.container(border=True):
     st.write(row.get("summary", "—"))
 
     a, b, c = st.columns(3)
-    a.metric("Ticker", str(row.get("ticker", "—")), border=True,height=150)
+    a.metric("Ticker", str(row.get("ticker", "—")), border=True,height=130)
     dval = row.get("date", "—")
     if isinstance(dval, (pd.Timestamp, date)):
         dval = pd.to_datetime(dval).date().isoformat()
-    b.metric("Date", str(dval), border=True,height=150)
-    c.metric("Label", str(row.get("label", "—")), _conf_delta(row.get("confidence")), border=True,height=150)
+    b.metric("Date", str(dval), border=True,height=130)
+    c.metric("Label", str(row.get("label", "—")), _conf_delta(row.get("confidence")), border=True,height=130)
 
     a, b, c = st.columns(3)
-    a.metric("Day Return", _pct(row.get("day_ret")), border=True,height=150)
-    b.metric("z_day", _sigma(row.get("z_day")), border=True,height=150)
-    c.metric("z_ar (abnormal)", _sigma(row.get("z_ar")), border=True,height=150)
+    a.metric("Day Return", _pct(row.get("day_ret")), border=True,height=130)
+    b.metric("z_day", _sigma(row.get("z_day")), border=True,height=130)
+    c.metric("z_ar (abnormal)", _sigma(row.get("z_ar")), border=True,height=130)
 
     a, b, c = st.columns(3)
-    a.metric("10-day t-stat", _num(row.get("t_stat")), border=True,height=150)
-    b.metric("Signal Score", _pct(row.get("signal_score"), 1), border=True,height=150)
+    a.metric("10-day t-stat", _num(row.get("t_stat")), border=True,height=130)
+    b.metric("Signal Score", _pct(row.get("signal_score"), 1), border=True,height=130)
 
     zd = row.get("z_day", 0) or 0.0
     za = row.get("z_ar", 0) or 0.0
     dominant_is_day = abs(zd) >= abs(za)
     up = (zd >= 0) if dominant_is_day else (za >= 0)
-    c.metric("Direction", "UpShock" if up else "DownShock", border=True,height=150)
+    c.metric("Direction", "UpShock" if up else "DownShock", border=True,height=130)
 
 with st.expander("How to read this dashboard", expanded=False):
     st.markdown("""
