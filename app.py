@@ -1018,10 +1018,10 @@ row_df["date"] = pd.to_datetime(row_df["date"])
 # Simple Controls (static only)
 # =========================
 co1, co2 = st.columns(2)
-with co1:
+# with co1:
 #     # st.selectbox("Ticker", ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN"], index=0)
 #     # st.success("Ticker:  AAPL")
-with co2:
+# with co2:
     # st.text_input("Keywords (comma-separated)", value="apple, iphone, ipad, macbook, tim cook")
 
 st.success("Ticker Context Keywords: apple, iphone, ipad, macbook, tim cook")
