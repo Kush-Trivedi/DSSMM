@@ -1033,7 +1033,7 @@ st.success("Input context from [Kaggle Notebook](https://www.kaggle.com/code/kus
 row = row_df.iloc[0]
 
 with st.container(border=True):
-    st.subheader(":green[Signal] Snapshot Generated :blue[BigQuery AI]")
+    st.subheader(":green[Signal] :violet[Snapshot] Generated :blue[BigQuery AI]")
     st.write(row.get("summary", "—"))
 
     a, b, c = st.columns(3)
