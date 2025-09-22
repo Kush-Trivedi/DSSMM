@@ -1031,7 +1031,7 @@ st.success("Ticker Context Keywords: apple, iphone, ipad, macbook, tim cook")
 # =========================
 row = row_df.iloc[0]
 
-with container(border=True):
+with st.container(border=True):
     st.subheader("Summary")
     st.write(row.get("summary", "—"))
 
