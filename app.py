@@ -1019,71 +1019,71 @@ row_df["date"] = pd.to_datetime(row_df["date"])
 # =========================
 co1, co2 = st.columns(2)
 with co1:
-    st.success("Ticker Context Keywords: apple, iphone, ipad, macbook, tim cook")
 #     # st.selectbox("Ticker", ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN"], index=0)
 #     # st.success("Ticker:  AAPL")
 with co2:
-    with st.expander("How to read this dashboard", expanded=False):
-        st.markdown("""
-            ### Inputs
-            - **Ticker** — The stock you’re analyzing.  
-            - **Keywords** — Optional terms (e.g., product/CEO) used to find relevant headlines near the event date.  
-            - **Date** — Event day for the snapshot.
-                            
-            ### What the units mean
-            - **Day Return** — **percent (%)** move for the day.
-            - **z_day** — **standard deviations (σ)** from the stock’s recent normal (~last 20 trading days).  
-            *Plain English:* “How unusual was today for **this** stock?”
-            - **z_ar (abnormal)** — **standard deviations (σ)** after removing the market effect (~120-day market model).  
-            *Plain English:* “How company-specific was the move?”
-            - **10-day trend (t-stat)** — **unitless score**; bigger magnitude = stronger short-term trend.
-            - **Signal Score** — **0–1 scale** (shown as %); higher = more conviction that today mattered.
-            - **Direction** — **UpShock / DownShock** from the sign of the bigger of z_day or z_ar.
-            - **Label (confidence)** — quick bucket (Signal / Weak / Noise) with a confidence nudge.
-    
-            ### Rule of thumb
-            - **Unusual size:**  
-            • |z| ≈ **2σ** → worth a look.  
-            • |z| ≈ **3σ+** → rare; dig deeper.
-            - **Company vs market:**  
-            • **High |z_ar|** → likely a company story (earnings, product, guidance).  
-            • **High |z_day|, low |z_ar|** → may be market/sector flow.
-            - **Trend context:**  
-            • **Trend > +2** and **UpShock** → momentum supports the pop.  
-            • **Trend < −2** and **DownShock** → momentum supports the drop.  
-            • Shock **against** trend → treat as a potential one-off; wait for follow-through.
-            - **Signal Score guide:**  
-            • **≥ 0.65** → strong signal: read the headlines; consider if it fits your plan.  
-            • **0.40–0.64** → mixed: note it, look for confirmation (next day/volume/news).  
-            • **< 0.40** → likely routine noise for now.        
-    
-            ### Signal score formula
-        """)
-    
-        st.latex(r"""
-        \mathbf{signal\_score}
-        = 0.4 \cdot \frac{\min(\max(|z_{day}|,|z_{ar}|),\,4)}{4}
-        + 0.4 \cdot \frac{\min(\text{news\_count},\,5)}{5}
-        + 0.2 \cdot \frac{\text{ai\_tilt}+1}{2}
-        """)
-        
-        st.markdown("""
-         **Practical read:** 
-        - High |z_ar| with supportive headlines → likely **idiosyncratic** catalyst.  
-        - High |z_day| but low |z_ar| → could be **market/sector** move.  
-        - **High score, UpShock, rising trend** → cleaner bullish setup.  
-        - **High score, DownShock, falling trend** → cleaner bearish setup.
-        - Trend t-stat reinforces or fights the shock: alignment adds conviction, divergence suggests fade risk.  
-        - Keywords help surface the right headlines; adjust them if the context looks off.
-        """)
     # st.text_input("Keywords (comma-separated)", value="apple, iphone, ipad, macbook, tim cook")
 
-
+st.success("Ticker Context Keywords: apple, iphone, ipad, macbook, tim cook")
 
 # =========================
 # Shared UI (renders static snapshot)
 # =========================
 row = row_df.iloc[0]
+
+with st.expander("How to read this dashboard", expanded=False):
+    st.markdown("""
+        ### Inputs
+        - **Ticker** — The stock you’re analyzing.  
+        - **Keywords** — Optional terms (e.g., product/CEO) used to find relevant headlines near the event date.  
+        - **Date** — Event day for the snapshot.
+                        
+        ### What the units mean
+        - **Day Return** — **percent (%)** move for the day.
+        - **z_day** — **standard deviations (σ)** from the stock’s recent normal (~last 20 trading days).  
+        *Plain English:* “How unusual was today for **this** stock?”
+        - **z_ar (abnormal)** — **standard deviations (σ)** after removing the market effect (~120-day market model).  
+        *Plain English:* “How company-specific was the move?”
+        - **10-day trend (t-stat)** — **unitless score**; bigger magnitude = stronger short-term trend.
+        - **Signal Score** — **0–1 scale** (shown as %); higher = more conviction that today mattered.
+        - **Direction** — **UpShock / DownShock** from the sign of the bigger of z_day or z_ar.
+        - **Label (confidence)** — quick bucket (Signal / Weak / Noise) with a confidence nudge.
+
+        ### Rule of thumb
+        - **Unusual size:**  
+        • |z| ≈ **2σ** → worth a look.  
+        • |z| ≈ **3σ+** → rare; dig deeper.
+        - **Company vs market:**  
+        • **High |z_ar|** → likely a company story (earnings, product, guidance).  
+        • **High |z_day|, low |z_ar|** → may be market/sector flow.
+        - **Trend context:**  
+        • **Trend > +2** and **UpShock** → momentum supports the pop.  
+        • **Trend < −2** and **DownShock** → momentum supports the drop.  
+        • Shock **against** trend → treat as a potential one-off; wait for follow-through.
+        - **Signal Score guide:**  
+        • **≥ 0.65** → strong signal: read the headlines; consider if it fits your plan.  
+        • **0.40–0.64** → mixed: note it, look for confirmation (next day/volume/news).  
+        • **< 0.40** → likely routine noise for now.        
+
+        ### Signal score formula
+    """)
+
+    st.latex(r"""
+    \mathbf{signal\_score}
+    = 0.4 \cdot \frac{\min(\max(|z_{day}|,|z_{ar}|),\,4)}{4}
+    + 0.4 \cdot \frac{\min(\text{news\_count},\,5)}{5}
+    + 0.2 \cdot \frac{\text{ai\_tilt}+1}{2}
+    """)
+    
+    st.markdown("""
+     **Practical read:** 
+    - High |z_ar| with supportive headlines → likely **idiosyncratic** catalyst.  
+    - High |z_day| but low |z_ar| → could be **market/sector** move.  
+    - **High score, UpShock, rising trend** → cleaner bullish setup.  
+    - **High score, DownShock, falling trend** → cleaner bearish setup.
+    - Trend t-stat reinforces or fights the shock: alignment adds conviction, divergence suggests fade risk.  
+    - Keywords help surface the right headlines; adjust them if the context looks off.
+    """)
 
 with st.container(border=True):
     st.subheader("Summary")
@@ -1111,6 +1111,8 @@ with st.container(border=True):
     dominant_is_day = abs(zd) >= abs(za)
     up = (zd >= 0) if dominant_is_day else (za >= 0)
     c.metric("Direction", "UpShock" if up else "DownShock", border=True,height=150)
+
+
 
     
 
