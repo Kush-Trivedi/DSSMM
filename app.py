@@ -1079,7 +1079,7 @@ with st.expander("How to read this dashboard", expanded=False):
         - **Direction** — **UpShock / DownShock** from the sign of the bigger of z_day or z_ar.
         - **Label (confidence)** — quick bucket (Signal / Weak / Noise) with a confidence nudge.
 
-        ### Safe, simple rules of thumb
+        ### Rule of thumb
         - **Unusual size:**  
         • |z| ≈ **2σ** → worth a look.  
         • |z| ≈ **3σ+** → rare; dig deeper.
@@ -1093,13 +1093,7 @@ with st.expander("How to read this dashboard", expanded=False):
         - **Signal Score guide:**  
         • **≥ 0.65** → strong signal: read the headlines; consider if it fits your plan.  
         • **0.40–0.64** → mixed: note it, look for confirmation (next day/volume/news).  
-        • **< 0.40** → likely routine noise for now.
-
-        ### Quick interpretations
-        - **Big |z_ar| + clear headlines** → likely **idiosyncratic** (company-driven).  
-        - **Big |z_day|, small |z_ar|** → likely **macro/sector** day.  
-        - **High score, UpShock, rising trend** → cleaner bullish setup.  
-        - **High score, DownShock, falling trend** → cleaner bearish setup.
+        • **< 0.40** → likely routine noise for now.        
 
         ### Signal score formula
     """)
@@ -1112,9 +1106,11 @@ with st.expander("How to read this dashboard", expanded=False):
     """)
     
     st.markdown("""
-    **Practical read:**  
+     **Practical read:** 
     - High |z_ar| with supportive headlines → likely **idiosyncratic** catalyst.  
     - High |z_day| but low |z_ar| → could be **market/sector** move.  
+    - **High score, UpShock, rising trend** → cleaner bullish setup.  
+    - **High score, DownShock, falling trend** → cleaner bearish setup.
     - Trend t-stat reinforces or fights the shock: alignment adds conviction, divergence suggests fade risk.  
     - Keywords help surface the right headlines; adjust them if the context looks off.
     """)
