@@ -101,54 +101,6 @@ A **BigQuery-native pipeline** that:
    - Run a light **5-day forward return check** to see if **Signal days** behave differently from **Noise days**.
 
 
-<h2 style="color:rgb(233, 92, 32);border-radius:5px;display:fill"><center><font>DSSMM - Triage S³ (Signal Strength Score) Formula</font></center></h2>
-
-
-**Inputs (prototype):**
-
-- **Prices:** `yfinance` (daily OHLC)
-- **News:** public RSS (Reuters / WSJ Markets / Yahoo Finance)
-- **Custom Keywords:** Your custom keywords in regards to the ticker we select
-
-**Processing (in BigQuery):**
-
-- **Stat tests:** daily return, market-adjusted **abnormal return** (BQML linear reg vs. index), and **z-scores**:
-  - `z_day` = z-score of the raw daily return
-  - `z_ar` = z-score of the abnormal (market-adjusted) return
-- **Semantic matching:** `ML.GENERATE_EMBEDDING` on headlines + ticker context → cosine similarity to link events ↔ news
-- **Summarization & tone:** `ML.GENERATE_TEXT` → 2–4 sentence explanation; plus a **True/False** tilt for equity holders
-- **Count of supporting news:** `news_count` near the event window (±2 days)
-
----
-
-$$
-\mathbf{signal\_score}
-= 0.4 \cdot \frac{\min\!\big(\max(|z_{day}|,|z_{ar}|),\,4\big)}{4}
-+ 0.4 \cdot \frac{\min(\text{news\_count},\,5)}{5}
-+ 0.2 \cdot \frac{(\text{ai\_tilt}+1)}{2}
-$$
-
----
-  
-**Where:**
-
-- \(|z_day|\), \(|z_ar|\) capture shock size (capped at 4σ for stability)
-- `news_count` is capped at 5 (diminishing returns)
-- `ai_tilt` ∈ \{-1, 0, +1\} (negative / neutral / positive)
-
-**Labels (for triage):**
-
-- **Signal** if `signal_score ≥ 0.65`
-- **Weak** if `0.40 ≤ signal_score < 0.65`
-- **Noise** otherwise
-
-**Outputs:**
-
-- **Verdict:** _Signal / Weak / Noise_
-- **Why it moved:** 2–4 sentence summary with links to top-matching news & headlines
-- **Sanity check:** 5-day forward return table (diagnostic)
-
-
 # <div style="color:rgb(0, 103, 71);display:fill;border-radius:5px;background-color:whie;letter-spacing:0.1px;overflow:hidden"><p style="padding:10px;color:rgb(0, 103, 71);overflow:hidden;margin:0;font-size:100%; "><b id= '006'>Approach & How BigQuery AI Was Used </b> </p></div>
 
 
@@ -1272,6 +1224,12 @@ Below is a snapshot of the dashboard; use the live link to explore signal scores
         - Experience with **BigQuery AI**: 2 years
         - Experience with **Google Cloud**: 5 years
         - **Profile**: [LinkedIn](https://www.linkedin.com/in/kush-trivedi/), [Kaggle](https://www.kaggle.com/kushtrivedi14728)
+
+    - **Team Member**: Rushabh Shah
+        - **Certification**: [GCP Professional Data Analyst](https://coursera.org/share/26015327c66106e63fefe2d229598d32)
+        - Experience with **BigQuery AI**: 1 years
+        - Experience with **Google Cloud**: 1 years
+        - **Profile**: [LinkedIn](https://www.linkedin.com/in/therushabhshah/), [Kaggle](https://www.kaggle.com/rushabh2905)
 
 
 - **Feedback** on BigQuery AI (during this hackathon)
